@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/drizzle";
 import { createServerClient } from "@/lib/supabase";
 import { cookies } from "next/headers";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and, sql } from "drizzle-orm";
 import * as schema from "@/lib/schema";
 import {
   ApiResponse,
@@ -60,7 +60,12 @@ export async function createOrder(
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     let totalAmount = 0;
-    const validatedItems = [];
+    const validatedItems: Array<{
+      product_id: string;
+      quantity: number;
+      unit_price_at_purchase: number;
+      prescription_file_path?: string;
+    }> = [];
 
     // Validate each item
     for (const item of input.items) {
@@ -109,38 +114,54 @@ export async function createOrder(
       });
     }
 
-    // Create order
-    const [order] = await db
-      .insert(schema.orders)
-      .values({
-        customer_id: user.id as any,
-        total_amount_inr: totalAmount,
-        order_status: "pending" as any,
-        payment_status: "pending" as any,
-        shipping_address_json: input.shipping_address as any,
-      })
-      .returning();
+    // Create order with atomic transaction to ensure data consistency
+    const order = await db.transaction(async (tx) => {
+      // Create order
+      const [newOrder] = await tx
+        .insert(schema.orders)
+        .values({
+          customer_id: user.id as any,
+          total_amount_inr: totalAmount,
+          order_status: "pending" as any,
+          payment_status: "pending" as any,
+          shipping_address_json: input.shipping_address as any,
+        })
+        .returning();
 
-    // Insert order items
-    await db
-      .insert(schema.order_items)
-      .values(
-        validatedItems.map((item) => ({
-          order_id: order.id,
-          ...item,
-        }))
-      )
-      .execute();
+      // Insert order items
+      await tx
+        .insert(schema.order_items)
+        .values(
+          validatedItems.map((item) => ({
+            order_id: newOrder.id,
+            ...item,
+          }))
+        );
 
-    // Reduce product stock (should ideally be in a transaction)
-    for (const item of validatedItems) {
-      const product = productMap.get(item.product_id)!;
-      await db
-        .update(schema.products)
-        .set({ stock: product.stock - item.quantity })
-        .where(eq(schema.products.id, item.product_id))
-        .execute();
-    }
+      // Update stock atomically with optimistic concurrency control
+      for (const item of validatedItems) {
+        const updateResult = await tx
+          .update(schema.products)
+          .set({ stock: sql`${schema.products.stock} - ${item.quantity}` })
+          .where(
+            and(
+              eq(schema.products.id, item.product_id),
+              sql`${schema.products.stock} >= ${item.quantity}`
+            )
+          )
+          .returning();
+
+        // If no rows updated, stock was insufficient (race condition)
+        if (updateResult.length === 0) {
+          const product = productMap.get(item.product_id)!;
+          throw new Error(
+            `Insufficient stock for "${product.name}". Stock may have changed during checkout.`
+          );
+        }
+      }
+
+      return newOrder;
+    });
 
     revalidatePath("/shop");
     revalidatePath("/orders");
@@ -336,9 +357,11 @@ export async function getPrescriptionUrl(
 }
 
 /**
- * Utility: Validate shipping address structure
+ * Validate shipping address with comprehensive security checks
+ * Prevents XSS, injection, and data integrity issues
  */
 function validateShippingAddress(address: ShippingAddress): boolean {
+  // Check required fields exist
   if (
     !address.street ||
     !address.city ||
@@ -349,13 +372,55 @@ function validateShippingAddress(address: ShippingAddress): boolean {
     return false;
   }
 
-  return (
-    typeof address.street === "string" &&
-    typeof address.city === "string" &&
-    typeof address.state === "string" &&
-    typeof address.postal_code === "string" &&
-    typeof address.country === "string"
-  );
+  // Type validation
+  if (
+    typeof address.street !== "string" ||
+    typeof address.city !== "string" ||
+    typeof address.state !== "string" ||
+    typeof address.postal_code !== "string" ||
+    typeof address.country !== "string"
+  ) {
+    return false;
+  }
+
+  // Length validation
+  const street = address.street.trim();
+  const city = address.city.trim();
+  const state = address.state.trim();
+  const postalCode = address.postal_code.trim();
+  const country = address.country.trim();
+
+  if (
+    street.length < 5 || street.length > 200 ||
+    city.length < 2 || city.length > 100 ||
+    state.length < 2 || state.length > 100 ||
+    postalCode.length < 4 || postalCode.length > 10 ||
+    country.length < 2 || country.length > 100
+  ) {
+    return false;
+  }
+
+  // Format validation
+  // Indian postal code format: 6 digits
+  const postalCodeRegex = /^[0-9]{6}$/;
+  // City and state should contain only letters, spaces, hyphens, and periods
+  const nameRegex = /^[a-zA-Z\s\-\.]+$/;
+  // Street can have alphanumeric, spaces, commas, hyphens, periods, and #
+  const streetRegex = /^[a-zA-Z0-9\s,\-\.#]+$/;
+
+  if (!postalCodeRegex.test(postalCode)) {
+    return false;
+  }
+
+  if (!nameRegex.test(city) || !nameRegex.test(state) || !nameRegex.test(country)) {
+    return false;
+  }
+
+  if (!streetRegex.test(street)) {
+    return false;
+  }
+
+  return true;
 }
 
 /**

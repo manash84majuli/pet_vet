@@ -30,7 +30,7 @@ function LoginContent() {
       await login(email, password);
       const redirectTo = searchParams.get("from") || "/profile";
       router.refresh();
-      router.push(redirectTo);
+      window.location.assign(redirectTo);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Login failed");

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import * as schema from "@/lib/schema";
 import crypto from "crypto";
 
@@ -81,16 +81,21 @@ export async function POST(request: NextRequest) {
           razorpay_order_id,
           payment_status: "paid" as const,
         })
-        .where(eq(schema.appointments.id, entity_id))
+        .where(
+          and(
+            eq(schema.appointments.id, entity_id),
+            eq(schema.appointments.payment_status, "pending")
+          )
+        )
         .returning();
 
       if (result.length === 0) {
         return NextResponse.json(
           {
             success: false,
-            error: "Appointment not found",
+            error: "Appointment not found or already paid",
           },
-          { status: 404 }
+          { status: 409 }
         );
       }
 
@@ -113,16 +118,21 @@ export async function POST(request: NextRequest) {
           razorpay_order_id,
           payment_status: "paid" as const,
         })
-        .where(eq(schema.orders.id, entity_id))
+        .where(
+          and(
+            eq(schema.orders.id, entity_id),
+            eq(schema.orders.payment_status, "pending")
+          )
+        )
         .returning();
 
       if (result.length === 0) {
         return NextResponse.json(
           {
             success: false,
-            error: "Order not found",
+            error: "Order not found or already paid",
           },
-          { status: 404 }
+          { status: 409 }
         );
       }
 
