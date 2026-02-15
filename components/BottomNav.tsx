@@ -26,9 +26,30 @@ import { cn } from "@/lib/utils";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   const navItems = useMemo(() => {
+    // While auth is loading, show minimal nav to prevent flickering
+    if (isLoading) {
+      return [
+        {
+          label: "Home",
+          href: "/",
+          icon: Home,
+        },
+        {
+          label: "Appointments",
+          href: "/appointments",
+          icon: Calendar,
+        },
+        {
+          label: "Shop",
+          href: "/shop",
+          icon: ShoppingBag,
+        },
+      ];
+    }
+
     const items = [
       {
         label: "Home",
@@ -82,6 +103,11 @@ export function BottomNav() {
         icon: ShieldCheck,
       });
       items.push({
+        label: "POS",
+        href: "/pos",
+        icon: ScanLine,
+      });
+      items.push({
         label: "Profile",
         href: "/profile",
         icon: User,
@@ -101,7 +127,7 @@ export function BottomNav() {
     });
 
     return items;
-  }, [isAuthenticated, user?.role]);
+  }, [isLoading, isAuthenticated, user?.role]);
 
   return (
     <>

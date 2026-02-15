@@ -96,11 +96,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session?.user) {
         setUser(null);
+        setIsLoading(false);
         return;
       }
 
-      const profile = await loadProfile(session.user.id);
-      setUser(profile);
+      // Set loading while fetching profile to avoid nav flicker
+      setIsLoading(true);
+      try {
+        const profile = await loadProfile(session.user.id);
+        setUser(profile);
+      } finally {
+        setIsLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
