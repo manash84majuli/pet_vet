@@ -265,6 +265,13 @@ export default function StoreManagerClient({
       .upload(filePath, file, { cacheControl: "3600", upsert: true });
 
     if (uploadError) {
+      const msg = uploadError.message || "Upload failed";
+      if (msg.includes("Bucket not found")) {
+        throw new Error("Storage bucket 'product-images' not configured. Create it in Supabase Dashboard → Storage.");
+      }
+      if (msg.includes("security") || msg.includes("policy") || msg.includes("row-level")) {
+        throw new Error("Permission denied. Check storage RLS policies in Supabase.");
+      }
       throw uploadError;
     }
 

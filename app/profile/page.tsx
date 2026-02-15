@@ -220,6 +220,22 @@ export default function ProfilePage() {
     const file = event.target.files?.[0];
     if (!file || !profile) return;
 
+    // Validate file
+    const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+    
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setStatus("Only JPG, PNG, or WebP images are allowed.");
+      event.target.value = "";
+      return;
+    }
+    
+    if (file.size > MAX_SIZE) {
+      setStatus("Image must be under 2 MB.");
+      event.target.value = "";
+      return;
+    }
+
     setIsUploadingAvatar(true);
     setStatus(null);
 
@@ -229,9 +245,10 @@ export default function ProfilePage() {
 
       const { error } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { upsert: true, cacheControl: "3600" });
 
       if (error) {
+        console.error("Avatar upload error:", error);
         throw error;
       }
 
@@ -246,7 +263,12 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error("Avatar upload failed", error);
-      setStatus("Photo upload failed.");
+      const msg = error instanceof Error ? error.message : "Photo upload failed.";
+      setStatus(msg.includes("Bucket not found") 
+        ? "Storage bucket 'avatars' not configured. Please create it in Supabase Dashboard → Storage."
+        : msg.includes("security") || msg.includes("policy") || msg.includes("row-level")
+        ? "Permission denied. Check storage RLS policies in Supabase."
+        : `Photo upload failed: ${msg}`);
     } finally {
       setIsUploadingAvatar(false);
       event.target.value = "";
@@ -257,6 +279,22 @@ export default function ProfilePage() {
     const file = event.target.files?.[0];
     if (!file || !profile) return;
 
+    // Validate file
+    const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+    
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setStatus("Only JPG, PNG, or WebP images are allowed.");
+      event.target.value = "";
+      return;
+    }
+    
+    if (file.size > MAX_SIZE) {
+      setStatus("Image must be under 2 MB.");
+      event.target.value = "";
+      return;
+    }
+
     setIsUploadingPetPhoto(true);
     setStatus(null);
 
@@ -266,9 +304,10 @@ export default function ProfilePage() {
 
       const { error } = await supabase.storage
         .from("pet-photos")
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { upsert: true, cacheControl: "3600" });
 
       if (error) {
+        console.error("Pet photo upload error:", error);
         throw error;
       }
 
@@ -277,7 +316,12 @@ export default function ProfilePage() {
       setStatus("Pet photo uploaded.");
     } catch (error) {
       console.error("Pet photo upload failed", error);
-      setStatus("Pet photo upload failed.");
+      const msg = error instanceof Error ? error.message : "Pet photo upload failed.";
+      setStatus(msg.includes("Bucket not found")
+        ? "Storage bucket 'pet-photos' not configured. Please create it in Supabase Dashboard → Storage."
+        : msg.includes("security") || msg.includes("policy") || msg.includes("row-level")
+        ? "Permission denied. Check storage RLS policies in Supabase."
+        : `Pet photo upload failed: ${msg}`);
     } finally {
       setIsUploadingPetPhoto(false);
       event.target.value = "";
