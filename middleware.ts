@@ -15,6 +15,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+const SUPABASE_URL = supabaseUrl as string;
+const SUPABASE_ANON_KEY = supabaseAnonKey as string;
+
 // Routes that require authentication
 const protectedRoutes = [
   "/profile",
@@ -41,11 +44,14 @@ const applyCookies = (source: NextResponse, target: NextResponse) => {
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const response = NextResponse.next();
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
-      get: (name) => request.cookies.get(name)?.value,
-      set: (name, value, options) => response.cookies.set({ name, value, ...options }),
-      remove: (name, options) => response.cookies.set({ name, value: "", ...options }),
+      getAll: () => request.cookies.getAll(),
+      setAll: (cookiesToSet) => {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set({ name, value, ...options });
+        });
+      },
     },
   });
   const {

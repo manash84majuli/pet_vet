@@ -33,7 +33,9 @@ export const createBrowserClient = () =>
 type CookieStore = {
   get: (name: string) => { value: string } | undefined;
   set: (name: string, value: string, options?: CookieOptions) => void;
-  delete: (name: string | { name: string } & CookieOptions) => void;
+  delete: (
+    ...args: [string] | [{ name: string } & CookieOptions]
+  ) => void | unknown;
 };
 
 const removeCookie = (cookieStore: CookieStore, name: string, options?: CookieOptions) => {

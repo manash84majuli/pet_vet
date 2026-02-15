@@ -12,12 +12,16 @@ import {
   Product,
   Service,
 } from "@/lib/types";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { createServerClient } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
-const requirePosAccess = async () => {
+type PosAccess =
+  | { profile: typeof schema.profiles.$inferSelect }
+  | { error: string };
+
+const requirePosAccess = async (): Promise<PosAccess> => {
   const cookieStore = cookies();
   const supabase = createServerClient(cookieStore);
   const {
@@ -26,7 +30,7 @@ const requirePosAccess = async () => {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return { error: "Unauthorized" } as const;
+    return { error: "Unauthorized" };
   }
 
   const profile = await db.query.profiles.findFirst({
@@ -34,10 +38,10 @@ const requirePosAccess = async () => {
   });
 
   if (!profile || (profile.role !== "admin" && profile.role !== "store_manager")) {
-    return { error: "Forbidden" } as const;
+    return { error: "Forbidden" };
   }
 
-  return { profile } as const;
+  return { profile };
 };
 
 const mapProduct = (row: typeof schema.products.$inferSelect): Product => ({

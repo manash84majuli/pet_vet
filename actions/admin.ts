@@ -19,7 +19,11 @@ const mapProfile = (row: typeof schema.profiles.$inferSelect): Profile => ({
   updated_at: row.updated_at.toISOString(),
 });
 
-const requireAdmin = async () => {
+type AdminAccess =
+  | { profile: typeof schema.profiles.$inferSelect }
+  | { error: string };
+
+const requireAdmin = async (): Promise<AdminAccess> => {
   const cookieStore = cookies();
   const supabase = createServerClient(cookieStore);
   const {
@@ -28,7 +32,7 @@ const requireAdmin = async () => {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return { error: "Unauthorized" } as const;
+    return { error: "Unauthorized" };
   }
 
   const profile = await db.query.profiles.findFirst({
@@ -36,10 +40,10 @@ const requireAdmin = async () => {
   });
 
   if (!profile || profile.role !== "admin") {
-    return { error: "Forbidden" } as const;
+    return { error: "Forbidden" };
   }
 
-  return { profile } as const;
+  return { profile };
 };
 
 export async function getAllProfiles(): Promise<ApiResponse<Profile[]>> {
