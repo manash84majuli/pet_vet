@@ -6,7 +6,6 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -34,7 +33,6 @@ import { createBrowserClient } from "@/lib/supabase";
 import { Profile, Pet, Gender } from "@/lib/types";
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { logout } = useAuth();
   const supabase = useMemo(() => createBrowserClient(), []);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
@@ -347,8 +345,8 @@ export default function ProfilePage() {
         console.error("Logout failed", error);
       }
     } finally {
-      router.refresh();
-      router.replace("/login");
+      // Full page redirect to clear all cached state and cookies
+      window.location.href = "/login";
     }
   };
 
