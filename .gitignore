@@ -1,0 +1,82 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Next.js
+/.next
+/out
+.next/
+dist/
+
+# Testing
+coverage/
+.jest/
+
+# Production
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Misc
+.cache/
+.eslintcache
+
+# Local Netlify folder
+.netlify
+
+# PWA
+public/sw.js
+public/workbox-*.js
+public/workbox-*.json
+
+# Database
+drizzle/**/*.sql
+migrations/
+
+# OS
+.DS_Store
+.env.local.example
+
+# Vercel
+.vercel/
+
+# Editor
+.editorconfig
+
+# Security
+*.key
+*.pem
+private/
+
+# Generated
+*.generated.ts
+*.generated.js

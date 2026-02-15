@@ -1,0 +1,289 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* App typography */
+  body {
+    @apply font-sans antialiased;
+    font-family: "Source Sans 3", "Segoe UI", sans-serif;
+  }
+
+  /* Safe area for notches */
+  body {
+    padding-left: max(env(safe-area-inset-left), 0);
+    padding-right: max(env(safe-area-inset-right), 0);
+    padding-top: max(env(safe-area-inset-top), 0);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Remove default button styles */
+  button {
+    @apply cursor-pointer;
+  }
+
+  /* Form inputs */
+  input,
+  textarea,
+  select {
+    @apply focus:outline-none;
+  }
+}
+
+@layer components {
+  /* Container */
+  .container {
+    @apply w-full max-w-7xl mx-auto px-4;
+  }
+
+  /* Safe area inset bottom utility */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Page wrapper - accounts for bottom nav */
+  .page-wrapper {
+    @apply min-h-screen pb-20 md:pb-0;
+  }
+
+  /* Fade in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes riseUp {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .reveal {
+    animation: riseUp 0.7s ease-out both;
+  }
+
+  .delay-1 {
+    animation-delay: 120ms;
+  }
+
+  .delay-2 {
+    animation-delay: 240ms;
+  }
+
+  /* Lightweight replacements for `tailwindcss-animate` utilities used in this project */
+  @keyframes toast-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-in {
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    animation-name: toast-fade-in;
+    animation-duration: 220ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .slide-in-from-bottom-4 {
+    transform: translateY(1rem);
+  }
+
+  .fade-in.slide-in-from-bottom-4 {
+    transform: none;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply bg-gray-200 rounded animate-pulse;
+  }
+
+  /* Button variants */
+  .btn-primary {
+    @apply px-4 py-2 bg-primary text-white rounded font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 border border-gray-200 text-gray-900 rounded font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-block px-2 py-1 rounded text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-orange-100 text-orange-800;
+  }
+
+  .badge-success {
+    @apply bg-emerald-100 text-emerald-800;
+  }
+
+  .badge-warning {
+    @apply bg-amber-100 text-amber-800;
+  }
+
+  .badge-error {
+    @apply bg-red-100 text-red-800;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .font-display {
+    font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  }
+
+  .hero-surface {
+    background: radial-gradient(circle at 20% 20%, rgba(255, 221, 176, 0.8), transparent 50%),
+      radial-gradient(circle at 80% 10%, rgba(158, 231, 210, 0.7), transparent 45%),
+      linear-gradient(120deg, #fdf4e8 0%, #f8f4ef 52%, #f3f6f5 100%);
+  }
+
+  .glass-card {
+    @apply rounded-2xl border border-white/70 bg-white/80 shadow-lg;
+    backdrop-filter: blur(12px);
+  }
+
+  /* Input group */
+  .input-group {
+    @apply flex flex-col gap-2;
+  }
+
+  .input-label {
+    @apply text-sm font-medium text-gray-700;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-200 rounded text-sm focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+}
+
+@layer utilities {
+  /* Truncate utilities */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .truncate-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Viewport height utilities for mobile */
+  .h-screen-safe {
+    height: 100dvh;
+  }
+
+  /* Flex center */
+  .flex-center {
+    @apply flex items-center justify-center;
+  }
+
+  /* Grid center */
+  .grid-center {
+    @apply grid place-items-center;
+  }
+
+  /* Absolute fill */
+  .absolute-fill {
+    @apply absolute inset-0;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white;
+  }
+
+  /* Hide interactive elements */
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Light theme (default) */
+:root {
+  --primary: #f97316;
+  --accent: #10b981;
+  --bg: #ffffff;
+  --fg: #000000;
+}
+
+/* Dark theme (optional) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --fg: #fafafa;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+  }
+}
