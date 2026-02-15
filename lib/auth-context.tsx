@@ -93,15 +93,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Skip INITIAL_SESSION — already handled by checkAuth above
+      if (event === "INITIAL_SESSION") return;
+
       if (!session?.user) {
         setUser(null);
         setIsLoading(false);
         return;
       }
 
-      // Set loading while fetching profile to avoid nav flicker
-      setIsLoading(true);
+      // For TOKEN_REFRESHED, don't reset loading — user data is still valid
+      // Only set loading for actual sign-in/sign-out events
+      if (event === "SIGNED_IN") {
+        setIsLoading(true);
+      }
+
       try {
         const profile = await loadProfile(session.user.id);
         setUser(profile);

@@ -5,9 +5,15 @@
 @tailwind utilities;
 
 @layer base {
+  /* Force light color scheme - prevents system dark mode from
+     overriding form input colors (invisible text on dark backgrounds) */
+  html {
+    color-scheme: light;
+  }
+
   /* App typography */
   body {
-    @apply font-sans antialiased;
+    @apply font-sans antialiased bg-white text-gray-900;
     font-family: "Source Sans 3", "Segoe UI", sans-serif;
   }
 
@@ -28,11 +34,18 @@
     @apply cursor-pointer;
   }
 
-  /* Form inputs */
+  /* Form inputs - explicit light colors to override system dark mode */
   input,
   textarea,
   select {
-    @apply focus:outline-none;
+    @apply focus:outline-none bg-white text-gray-900;
+    color-scheme: light;
+  }
+
+  /* Placeholder text */
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-gray-400;
   }
 }
 

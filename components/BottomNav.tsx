@@ -30,8 +30,9 @@ export function BottomNav() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   const navItems = useMemo(() => {
-    // While auth is loading, show minimal nav to prevent flickering
-    if (isLoading) {
+    // While auth is loading AND we don't have user data yet, show minimal nav
+    // If we already have user data (e.g. token refresh), keep showing role-based nav
+    if (isLoading && !user) {
       return [
         { label: "Home", href: "/", icon: Home },
         { label: "Book", href: "/appointments", icon: Calendar },
@@ -88,7 +89,7 @@ export function BottomNav() {
       { label: "Shop", href: "/shop", icon: ShoppingBag },
       { label: "Profile", href: "/profile", icon: User },
     ];
-  }, [isLoading, isAuthenticated, user?.role]);
+  }, [isLoading, isAuthenticated, user]);
 
   // Hide on login/signup pages
   if (pathname === "/login" || pathname === "/signup") {
