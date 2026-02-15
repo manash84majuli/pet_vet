@@ -27,40 +27,45 @@ import { cn } from "@/lib/utils";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user } = useAuth();
-
-  // Normalize role for case-insensitive comparison
-  const userRole = user?.role?.toLowerCase();
+  const { user, isLoading } = useAuth();
 
   const navItems = useMemo(() => {
-    // If user data exists (from cache or fresh fetch), always show role-based nav
-    // Never fall back to a minimal "loading" nav — use cached profile instead
+    // While loading and we have no user (not even a cached one), show a minimal nav.
+    // This prevents a flash of the "Login" button on page load for authenticated users.
+    if (isLoading && !user) {
+      return [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Book", href: "/appointments", icon: Calendar },
+        { label: "Shop", href: "/shop", icon: ShoppingBag },
+      ];
+    }
+
+    const role = user?.role?.toLowerCase();
+
+    // ── Store Manager ──
+    if (role === UserRole.STORE_MANAGER) {
+      return [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Manage", href: "/store-manager", icon: LayoutGrid },
+        { label: "POS", href: "/pos", icon: ScanLine },
+        { label: "Orders", href: "/orders", icon: ClipboardList },
+        { label: "Profile", href: "/profile", icon: User },
+      ];
+    }
+
+    // ── Admin ──
+    if (role === UserRole.ADMIN) {
+      return [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Admin", href: "/admin", icon: ShieldCheck },
+        { label: "Manage", href: "/store-manager", icon: LayoutGrid },
+        { label: "POS", href: "/pos", icon: ScanLine },
+        { label: "Profile", href: "/profile", icon: User },
+      ];
+    }
+
+    // ── Customer / Vet / Other Authenticated Users ──
     if (user) {
-      const role = user.role?.toLowerCase();
-
-      // ── Store Manager: Home, Manage, POS, Orders, Profile ──
-      if (role === UserRole.STORE_MANAGER) {
-        return [
-          { label: "Home", href: "/", icon: Home },
-          { label: "Manage", href: "/store-manager", icon: LayoutGrid },
-          { label: "POS", href: "/pos", icon: ScanLine },
-          { label: "Orders", href: "/orders", icon: ClipboardList },
-          { label: "Profile", href: "/profile", icon: User },
-        ];
-      }
-
-      // ── Admin: Home, Admin, Manage, POS, Profile ──
-      if (role === UserRole.ADMIN) {
-        return [
-          { label: "Home", href: "/", icon: Home },
-          { label: "Admin", href: "/admin", icon: ShieldCheck },
-          { label: "Manage", href: "/store-manager", icon: LayoutGrid },
-          { label: "POS", href: "/pos", icon: ScanLine },
-          { label: "Profile", href: "/profile", icon: User },
-        ];
-      }
-
-      // ── Customer / Vet / any other role: Home, Book, Shop, Orders, Profile ──
       return [
         { label: "Home", href: "/", icon: Home },
         { label: "Book", href: "/appointments", icon: Calendar },
@@ -70,15 +75,14 @@ export function BottomNav() {
       ];
     }
 
-    // No user data at all (guest or still loading with no cache)
-    // Show guest nav — Login button tells user they need to sign in
+    // ── Guest (Unauthenticated) ──
     return [
       { label: "Home", href: "/", icon: Home },
       { label: "Book", href: "/appointments", icon: Calendar },
       { label: "Shop", href: "/shop", icon: ShoppingBag },
       { label: "Login", href: "/login", icon: LogIn },
     ];
-  }, [user, userRole]);
+  }, [user, isLoading]);
 
   // Hide on login/signup pages
   if (pathname === "/login" || pathname === "/signup") {

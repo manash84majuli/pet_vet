@@ -7,9 +7,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { logoutUser, signUpWithProfile } from "@/actions/auth";
-import { Database } from "@/lib/database.types";
 import { createBrowserClient } from "@/lib/supabase";
-import { Profile, UserRole } from "@/lib/types";
+import { Profile } from "@/lib/types";
 
 interface AuthContextType {
   user: Profile | null;
@@ -59,24 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Wrapper that also persists to localStorage
   const setUser = useCallback((profile: Profile | null) => {
-    setUserState(profile);
     setCachedProfile(profile);
+    setUserState(profile);
   }, []);
-
-  const mapProfile = useCallback(
-    (data: Database["public"]["Tables"]["profiles"]["Row"]): Profile => ({
-    id: data.id,
-    role: data.role as UserRole,
-    full_name: data.full_name,
-    phone: data.phone,
-    city: data.city ?? undefined,
-    state: data.state ?? undefined,
-    avatar_url: data.avatar_url ?? undefined,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-    }),
-    []
-  );
 
   const loadProfile = useCallback(
     async (userId: string) => {
@@ -91,79 +75,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
-      return mapProfile(data);
+      // The data from a .single() call is the row object itself.
+      // The type assertion is safe because RLS ensures we can only fetch the user's own profile.
+      return data as unknown as Profile;
     },
-    [mapProfile, supabase]
+    [supabase]
   );
 
   useEffect(() => {
-    const checkAuth = async () => {
-      // Don't show loading spinner if we have cached user data
-      if (!getCachedProfile()) {
-        setIsLoading(true);
-      }
-      try {
-        const {
-          data: { user: authUser },
-          error,
-        } = await supabase.auth.getUser();
+    // Set initial loading state
+    setIsLoading(true);
 
-        console.log("[Auth] getUser:", authUser?.id ? "found" : "none", error ? `error: ${error.message}` : "");
-
-        if (error || !authUser) {
-          setUser(null);
-          return;
-        }
-
-        const profile = await loadProfile(authUser.id);
-        console.log("[Auth] profile loaded:", profile?.role ?? "null");
-        setUser(profile);
-      } catch (error) {
-        console.error("[Auth] check failed:", error);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-
+    // Let onAuthStateChange be the single source of truth.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[Auth] onAuthStateChange:", event);
-
-      // Skip INITIAL_SESSION — already handled by checkAuth above
-      if (event === "INITIAL_SESSION") return;
-
-      if (event === "SIGNED_OUT" || !session?.user) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
-      // For TOKEN_REFRESHED, silently update profile without loading state
-      if (event === "TOKEN_REFRESHED") {
-        try {
-          const profile = await loadProfile(session.user.id);
-          if (profile) setUser(profile);
-        } catch {}
-        return;
-      }
-
-      // SIGNED_IN — full reload
-      setIsLoading(true);
-      try {
+      console.log(`[Auth] onAuthStateChange event: ${event}`);
+      if (session?.user) {
         const profile = await loadProfile(session.user.id);
-        console.log("[Auth] SIGNED_IN profile:", profile?.role ?? "null");
+        console.log(`[Auth] Profile loaded, role: ${profile?.role}`);
         setUser(profile);
-      } finally {
-        setIsLoading(false);
+      } else {
+        console.log("[Auth] No session, user set to null.");
+        setUser(null);
       }
+      setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
-  }, [loadProfile, supabase]);
+    return () => {
+      console.log("[Auth] Unsubscribing from auth changes.");
+      subscription.unsubscribe();
+    };
+  }, [loadProfile, setUser, supabase]);
+
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
