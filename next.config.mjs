@@ -34,7 +34,7 @@ const withPWAConfig = withPWA({
   cacheStartUrl: true,
   cacheOnFrontEndNav: true,
   reloadOnOnline: true,
-  sw: "public/sw.js",
+  sw: "sw.js",
   fallbacks: {
     image: "/fallback.png",
   },
