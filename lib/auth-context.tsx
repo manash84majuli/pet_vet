@@ -28,10 +28,40 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Cache keys for localStorage
+const CACHED_PROFILE_KEY = "vet_pet_cached_profile";
+
+function getCachedProfile(): Profile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const cached = localStorage.getItem(CACHED_PROFILE_KEY);
+    if (cached) return JSON.parse(cached) as Profile;
+  } catch {}
+  return null;
+}
+
+function setCachedProfile(profile: Profile | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (profile) {
+      localStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(profile));
+    } else {
+      localStorage.removeItem(CACHED_PROFILE_KEY);
+    }
+  } catch {}
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<Profile | null>(null);
+  // Initialize from cache so role-based UI renders immediately
+  const [user, setUserState] = useState<Profile | null>(() => getCachedProfile());
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useMemo(() => createBrowserClient(), []);
+
+  // Wrapper that also persists to localStorage
+  const setUser = useCallback((profile: Profile | null) => {
+    setUserState(profile);
+    setCachedProfile(profile);
+  }, []);
 
   const mapProfile = useCallback(
     (data: Database["public"]["Tables"]["profiles"]["Row"]): Profile => ({
@@ -68,12 +98,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      setIsLoading(true);
+      // Don't show loading spinner if we have cached user data
+      if (!getCachedProfile()) {
+        setIsLoading(true);
+      }
       try {
         const {
           data: { user: authUser },
           error,
         } = await supabase.auth.getUser();
+
+        console.log("[Auth] getUser:", authUser?.id ? "found" : "none", error ? `error: ${error.message}` : "");
 
         if (error || !authUser) {
           setUser(null);
@@ -81,9 +116,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         const profile = await loadProfile(authUser.id);
+        console.log("[Auth] profile loaded:", profile?.role ?? "null");
         setUser(profile);
       } catch (error) {
-        console.error("Auth check failed:", error);
+        console.error("[Auth] check failed:", error);
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -94,23 +131,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[Auth] onAuthStateChange:", event);
+
       // Skip INITIAL_SESSION — already handled by checkAuth above
       if (event === "INITIAL_SESSION") return;
 
-      if (!session?.user) {
+      if (event === "SIGNED_OUT" || !session?.user) {
         setUser(null);
         setIsLoading(false);
         return;
       }
 
-      // For TOKEN_REFRESHED, don't reset loading — user data is still valid
-      // Only set loading for actual sign-in/sign-out events
-      if (event === "SIGNED_IN") {
-        setIsLoading(true);
+      // For TOKEN_REFRESHED, silently update profile without loading state
+      if (event === "TOKEN_REFRESHED") {
+        try {
+          const profile = await loadProfile(session.user.id);
+          if (profile) setUser(profile);
+        } catch {}
+        return;
       }
 
+      // SIGNED_IN — full reload
+      setIsLoading(true);
       try {
         const profile = await loadProfile(session.user.id);
+        console.log("[Auth] SIGNED_IN profile:", profile?.role ?? "null");
         setUser(profile);
       } finally {
         setIsLoading(false);

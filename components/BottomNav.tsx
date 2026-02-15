@@ -27,31 +27,40 @@ import { cn } from "@/lib/utils";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user } = useAuth();
+
+  // Normalize role for case-insensitive comparison
+  const userRole = user?.role?.toLowerCase();
 
   const navItems = useMemo(() => {
-    // While auth is loading AND we don't have user data yet, show minimal nav
-    // If we already have user data (e.g. token refresh), keep showing role-based nav
-    if (isLoading && !user) {
-      return [
-        { label: "Home", href: "/", icon: Home },
-        { label: "Book", href: "/appointments", icon: Calendar },
-        { label: "Shop", href: "/shop", icon: ShoppingBag },
-      ];
-    }
+    // If user data exists (from cache or fresh fetch), always show role-based nav
+    // Never fall back to a minimal "loading" nav — use cached profile instead
+    if (user) {
+      const role = user.role?.toLowerCase();
 
-    // ── Guest (not logged in): Home, Book, Shop, Login ──
-    if (!isAuthenticated) {
-      return [
-        { label: "Home", href: "/", icon: Home },
-        { label: "Book", href: "/appointments", icon: Calendar },
-        { label: "Shop", href: "/shop", icon: ShoppingBag },
-        { label: "Login", href: "/login", icon: LogIn },
-      ];
-    }
+      // ── Store Manager: Home, Manage, POS, Orders, Profile ──
+      if (role === UserRole.STORE_MANAGER) {
+        return [
+          { label: "Home", href: "/", icon: Home },
+          { label: "Manage", href: "/store-manager", icon: LayoutGrid },
+          { label: "POS", href: "/pos", icon: ScanLine },
+          { label: "Orders", href: "/orders", icon: ClipboardList },
+          { label: "Profile", href: "/profile", icon: User },
+        ];
+      }
 
-    // ── Customer: Home, Book, Shop, Orders, Profile ──
-    if (!user?.role || user.role === UserRole.CUSTOMER || user.role === UserRole.VET) {
+      // ── Admin: Home, Admin, Manage, POS, Profile ──
+      if (role === UserRole.ADMIN) {
+        return [
+          { label: "Home", href: "/", icon: Home },
+          { label: "Admin", href: "/admin", icon: ShieldCheck },
+          { label: "Manage", href: "/store-manager", icon: LayoutGrid },
+          { label: "POS", href: "/pos", icon: ScanLine },
+          { label: "Profile", href: "/profile", icon: User },
+        ];
+      }
+
+      // ── Customer / Vet / any other role: Home, Book, Shop, Orders, Profile ──
       return [
         { label: "Home", href: "/", icon: Home },
         { label: "Book", href: "/appointments", icon: Calendar },
@@ -61,35 +70,15 @@ export function BottomNav() {
       ];
     }
 
-    // ── Store Manager: Home, Manage, POS, Orders, Profile ──
-    if (user.role === UserRole.STORE_MANAGER) {
-      return [
-        { label: "Home", href: "/", icon: Home },
-        { label: "Manage", href: "/store-manager", icon: LayoutGrid },
-        { label: "POS", href: "/pos", icon: ScanLine },
-        { label: "Orders", href: "/orders", icon: ClipboardList },
-        { label: "Profile", href: "/profile", icon: User },
-      ];
-    }
-
-    // ── Admin: Home, Admin, Manage, POS, Profile ──
-    if (user.role === UserRole.ADMIN) {
-      return [
-        { label: "Home", href: "/", icon: Home },
-        { label: "Admin", href: "/admin", icon: ShieldCheck },
-        { label: "Manage", href: "/store-manager", icon: LayoutGrid },
-        { label: "POS", href: "/pos", icon: ScanLine },
-        { label: "Profile", href: "/profile", icon: User },
-      ];
-    }
-
-    // Fallback
+    // No user data at all (guest or still loading with no cache)
+    // Show guest nav — Login button tells user they need to sign in
     return [
       { label: "Home", href: "/", icon: Home },
+      { label: "Book", href: "/appointments", icon: Calendar },
       { label: "Shop", href: "/shop", icon: ShoppingBag },
-      { label: "Profile", href: "/profile", icon: User },
+      { label: "Login", href: "/login", icon: LogIn },
     ];
-  }, [isLoading, isAuthenticated, user]);
+  }, [user, userRole]);
 
   // Hide on login/signup pages
   if (pathname === "/login" || pathname === "/signup") {
