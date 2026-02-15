@@ -24,7 +24,9 @@ const queryClient =
   globalForPostgres.queryClient ??
   postgres(process.env.DATABASE_URL, {
     prepare: true,
-    max: 5,
+    max: process.env.NODE_ENV === "production" ? 1 : 5, // Single connection for serverless
+    idle_timeout: 20,
+    connect_timeout: 10,
   });
 
 if (process.env.NODE_ENV !== "production") {

@@ -36,6 +36,10 @@ const mapService = (row: typeof schema.services.$inferSelect): Service => ({
   updated_at: row.updated_at.toISOString(),
 });
 
+// Vercel: Use Node.js runtime for database queries
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export default async function PosPage() {
   const cookieStore = cookies();
   const supabase = createServerClient(cookieStore);

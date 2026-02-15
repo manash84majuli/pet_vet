@@ -56,6 +56,10 @@ const mapStatusLog = (
   created_at: row.created_at.toISOString(),
 });
 
+// Vercel: Use Node.js runtime for database queries
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export default async function StoreManagerPage() {
   const cookieStore = cookies();
   const supabase = createServerClient(cookieStore);
