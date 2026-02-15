@@ -1,7 +1,7 @@
 /**
  * Mobile Bottom Navigation Component
- * Fixed bottom nav with: Home, Shop, Appointments, Profile
- * Lucide React icons + Tailwind styling
+ * Fixed bottom nav with role-based links
+ * Modern pill/bubble style with animated active indicator
  * Visible only on mobile (md breakpoint)
  */
 
@@ -12,6 +12,7 @@ import { useMemo } from "react";
 import { usePathname } from "next/navigation";
 import {
   Calendar,
+  ClipboardList,
   Home,
   LayoutGrid,
   LogIn,
@@ -32,131 +33,125 @@ export function BottomNav() {
     // While auth is loading, show minimal nav to prevent flickering
     if (isLoading) {
       return [
-        {
-          label: "Home",
-          href: "/",
-          icon: Home,
-        },
-        {
-          label: "Appointments",
-          href: "/appointments",
-          icon: Calendar,
-        },
-        {
-          label: "Shop",
-          href: "/shop",
-          icon: ShoppingBag,
-        },
+        { label: "Home", href: "/", icon: Home },
+        { label: "Book", href: "/appointments", icon: Calendar },
+        { label: "Shop", href: "/shop", icon: ShoppingBag },
       ];
     }
 
-    const items = [
-      {
-        label: "Home",
-        href: "/",
-        icon: Home,
-      },
-      {
-        label: "Appointments",
-        href: "/appointments",
-        icon: Calendar,
-      },
-    ];
-
+    // ── Guest (not logged in): Home, Book, Shop, Login ──
     if (!isAuthenticated) {
-      items.push({
-        label: "Shop",
-        href: "/shop",
-        icon: ShoppingBag,
-      });
-      items.push({
-        label: "Login",
-        href: "/login",
-        icon: LogIn,
-      });
-      return items;
+      return [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Book", href: "/appointments", icon: Calendar },
+        { label: "Shop", href: "/shop", icon: ShoppingBag },
+        { label: "Login", href: "/login", icon: LogIn },
+      ];
     }
 
-    if (user?.role === UserRole.STORE_MANAGER) {
-      items.push({
-        label: "Manage",
-        href: "/store-manager",
-        icon: LayoutGrid,
-      });
-      items.push({
-        label: "POS",
-        href: "/pos",
-        icon: ScanLine,
-      });
-      items.push({
-        label: "Profile",
-        href: "/profile",
-        icon: User,
-      });
-      return items;
+    // ── Customer: Home, Book, Shop, Orders, Profile ──
+    if (!user?.role || user.role === UserRole.CUSTOMER || user.role === UserRole.VET) {
+      return [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Book", href: "/appointments", icon: Calendar },
+        { label: "Shop", href: "/shop", icon: ShoppingBag },
+        { label: "Orders", href: "/orders", icon: ClipboardList },
+        { label: "Profile", href: "/profile", icon: User },
+      ];
     }
 
-    if (user?.role === UserRole.ADMIN) {
-      items.push({
-        label: "Admin",
-        href: "/admin",
-        icon: ShieldCheck,
-      });
-      items.push({
-        label: "POS",
-        href: "/pos",
-        icon: ScanLine,
-      });
-      items.push({
-        label: "Profile",
-        href: "/profile",
-        icon: User,
-      });
-      return items;
+    // ── Store Manager: Home, Manage, POS, Orders, Profile ──
+    if (user.role === UserRole.STORE_MANAGER) {
+      return [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Manage", href: "/store-manager", icon: LayoutGrid },
+        { label: "POS", href: "/pos", icon: ScanLine },
+        { label: "Orders", href: "/orders", icon: ClipboardList },
+        { label: "Profile", href: "/profile", icon: User },
+      ];
     }
 
-    items.push({
-      label: "Shop",
-      href: "/shop",
-      icon: ShoppingBag,
-    });
-    items.push({
-      label: "Profile",
-      href: "/profile",
-      icon: User,
-    });
+    // ── Admin: Home, Admin, Manage, POS, Profile ──
+    if (user.role === UserRole.ADMIN) {
+      return [
+        { label: "Home", href: "/", icon: Home },
+        { label: "Admin", href: "/admin", icon: ShieldCheck },
+        { label: "Manage", href: "/store-manager", icon: LayoutGrid },
+        { label: "POS", href: "/pos", icon: ScanLine },
+        { label: "Profile", href: "/profile", icon: User },
+      ];
+    }
 
-    return items;
+    // Fallback
+    return [
+      { label: "Home", href: "/", icon: Home },
+      { label: "Shop", href: "/shop", icon: ShoppingBag },
+      { label: "Profile", href: "/profile", icon: User },
+    ];
   }, [isLoading, isAuthenticated, user?.role]);
+
+  // Hide on login/signup pages
+  if (pathname === "/login" || pathname === "/signup") {
+    return null;
+  }
 
   return (
     <>
       {/* Spacer to prevent content from being hidden under fixed nav */}
-      <div className="h-20 md:h-0" />
+      <div className="h-[4.5rem] md:h-0" />
 
       {/* Fixed bottom nav - mobile only */}
-      <nav className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t border-gray-200 safe-area-inset-bottom z-50">
-        <div className="flex items-center justify-around h-20">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
+      <nav className="fixed bottom-0 left-0 right-0 md:hidden z-50 safe-area-inset-bottom">
+        {/* Frosted glass background */}
+        <div className="mx-3 mb-3 px-2 py-2 bg-white/80 backdrop-blur-xl border border-gray-200/60 rounded-2xl shadow-lg shadow-black/5">
+          <div className="flex items-center justify-around">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center justify-center w-full h-full gap-1 transition-colors",
-                  isActive
-                    ? "text-primary"
-                    : "text-gray-600 hover:text-gray-900"
-                )}
-              >
-                <Icon className="w-6 h-6" />
-                <span className="text-xs font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all duration-200 min-w-[3.5rem]",
+                    isActive
+                      ? "text-orange-600"
+                      : "text-gray-400 hover:text-gray-600 active:scale-95"
+                  )}
+                >
+                  {/* Active pill background */}
+                  {isActive && (
+                    <span className="absolute inset-0 bg-orange-50 rounded-xl" />
+                  )}
+
+                  {/* Active indicator dot */}
+                  {isActive && (
+                    <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-4 h-1 bg-orange-500 rounded-full" />
+                  )}
+
+                  <Icon
+                    className={cn(
+                      "relative z-10 transition-all duration-200",
+                      isActive ? "w-[1.35rem] h-[1.35rem]" : "w-5 h-5"
+                    )}
+                    strokeWidth={isActive ? 2.5 : 1.8}
+                  />
+                  <span
+                    className={cn(
+                      "relative z-10 text-[0.65rem] mt-0.5 transition-all duration-200",
+                      isActive ? "font-bold" : "font-medium"
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </>
