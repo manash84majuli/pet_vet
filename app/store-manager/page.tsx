@@ -4,7 +4,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/drizzle";
 import * as schema from "@/lib/schema";
 import { createServerClient } from "@/lib/supabase";
@@ -117,14 +117,14 @@ export default async function StoreManagerPage({
       limit: pageSize,
       offset,
     }),
-    db.select({ count: schema.products.id }).from(schema.products),
-    db.select({ count: schema.services.id }).from(schema.services),
-    db.select({ count: schema.orders.id }).from(schema.orders),
+    db.select({ count: sql<number>`count(*)` }).from(schema.products),
+    db.select({ count: sql<number>`count(*)` }).from(schema.services),
+    db.select({ count: sql<number>`count(*)` }).from(schema.orders),
   ]);
 
-  const totalProducts = productsCount.length;
-  const totalServices = servicesCount.length;
-  const totalOrders = ordersCount.length;
+  const totalProducts = productsCount[0]?.count ?? 0;
+  const totalServices = servicesCount[0]?.count ?? 0;
+  const totalOrders = ordersCount[0]?.count ?? 0;
 
   const orderIds = orders.map((order) => order.id);
   const logs = orderIds.length
