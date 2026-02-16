@@ -51,8 +51,7 @@ function setCachedProfile(profile: Profile | null) {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Initialize from cache so role-based UI renders immediately
-  const [user, setUserState] = useState<Profile | null>(() => getCachedProfile());
+  const [user, setUserState] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = useMemo(() => createBrowserClient(), []);
 
@@ -83,27 +82,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    // Set initial loading state
+    let isMounted = true;
+
+    const cachedProfile = getCachedProfile();
+    if (cachedProfile) {
+      setUserState(cachedProfile);
+    }
+
     setIsLoading(true);
 
     // Let onAuthStateChange be the single source of truth.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[Auth] onAuthStateChange event: ${event}`);
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+
       if (session?.user) {
         const profile = await loadProfile(session.user.id);
-        console.log(`[Auth] Profile loaded, role: ${profile?.role}`);
+        if (!isMounted) return;
         setUser(profile);
       } else {
-        console.log("[Auth] No session, user set to null.");
         setUser(null);
       }
-      setIsLoading(false);
+
+      if (isMounted) {
+        setIsLoading(false);
+      }
     });
 
     return () => {
-      console.log("[Auth] Unsubscribing from auth changes.");
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [loadProfile, setUser, supabase]);

@@ -61,6 +61,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta
           name="theme-color"
           content="#f97316"
