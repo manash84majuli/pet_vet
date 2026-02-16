@@ -60,7 +60,11 @@ const mapStatusLog = (
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export default async function StoreManagerPage() {
+export default async function StoreManagerPage({
+  searchParams,
+}: {
+  searchParams: { page?: string };
+}) {
   const cookieStore = cookies();
   const supabase = createServerClient(cookieStore);
   const {
@@ -79,24 +83,48 @@ export default async function StoreManagerPage() {
     redirect("/");
   }
 
-  const [products, services, orders] = await Promise.all([
+  const currentPage = Math.max(1, Number(searchParams.page || 1));
+  const pageSize = 50;
+  const offset = (currentPage - 1) * pageSize;
+
+  const [
+    products,
+    services,
+    orders,
+    productsCount,
+    servicesCount,
+    ordersCount,
+  ] = await Promise.all([
     db.query.products.findMany({
       orderBy: (products, { asc }) => [asc(products.name)],
+      limit: pageSize,
+      offset,
     }),
     db.query.services.findMany({
       orderBy: (services, { asc }) => [asc(services.name)],
+      limit: pageSize,
+      offset,
     }),
     db.query.orders.findMany({
-    with: {
-      items: {
-        with: {
-          product: true,
+      with: {
+        items: {
+          with: {
+            product: true,
+          },
         },
       },
-    },
-    orderBy: [desc(schema.orders.created_at)],
+      orderBy: [desc(schema.orders.created_at)],
+      limit: pageSize,
+      offset,
     }),
+    db.select({ count: schema.products.id }).from(schema.products),
+    db.select({ count: schema.services.id }).from(schema.services),
+    db.select({ count: schema.orders.id }).from(schema.orders),
   ]);
+
+  const totalProducts = productsCount.length;
+  const totalServices = servicesCount.length;
+  const totalOrders = ordersCount.length;
 
   const orderIds = orders.map((order) => order.id);
   const logs = orderIds.length
@@ -157,6 +185,11 @@ export default async function StoreManagerPage() {
       services={services.map(mapService)}
       orders={formattedOrders}
       userRole={profile.role as UserRole}
+      currentPage={currentPage}
+      totalProducts={totalProducts}
+      totalServices={totalServices}
+      totalOrders={totalOrders}
+      pageSize={pageSize}
     />
   );
 }

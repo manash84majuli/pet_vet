@@ -24,10 +24,12 @@ declare global {
   }
 }
 
+import { useAuth } from "@/lib/auth-context";
 import { createOrder } from "@/actions/cart";
 import { CreateOrderInput } from "@/lib/types";
 
 export default function CheckoutPage() {
+  const { user } = useAuth();
   const cartStore = useCartStore();
   const { addToast } = useToast();
 
@@ -71,6 +73,7 @@ export default function CheckoutPage() {
           prescription_file_path: item.prescription_file_path,
         })),
         shipping_address: {
+          name: user?.full_name || "Guest User",
           street: "123 Pet Street",
           city: "Bangalore",
           state: "Karnataka",

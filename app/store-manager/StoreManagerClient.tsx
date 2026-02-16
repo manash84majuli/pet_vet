@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import {
   adjustInventoryBulk,
@@ -19,6 +20,11 @@ interface StoreManagerClientProps {
   services: Service[];
   orders: OrderWithItems[];
   userRole: UserRole;
+  currentPage: number;
+  totalProducts: number;
+  totalServices: number;
+  totalOrders: number;
+  pageSize: number;
 }
 
 const emptyProduct: Product = {
@@ -51,6 +57,11 @@ export default function StoreManagerClient({
   services,
   orders,
   userRole,
+  currentPage,
+  totalProducts,
+  totalServices,
+  totalOrders,
+  pageSize,
 }: StoreManagerClientProps) {
   const [items, setItems] = useState(products);
   const [serviceItems, setServiceItems] = useState(services);
@@ -82,6 +93,20 @@ export default function StoreManagerClient({
     () => userRole === UserRole.ADMIN || userRole === UserRole.STORE_MANAGER,
     [userRole]
   );
+
+  const totalPages = useMemo(() => {
+    if (activeTab === "products") return Math.ceil(totalProducts / pageSize);
+    if (activeTab === "services") return Math.ceil(totalServices / pageSize);
+    if (activeTab === "orders") return Math.ceil(totalOrders / pageSize);
+    if (activeTab === "inventory") return Math.ceil(totalProducts / pageSize);
+    return 1;
+  }, [
+    activeTab,
+    totalProducts,
+    totalServices,
+    totalOrders,
+    pageSize,
+  ]);
 
   const handleNewChange = (field: keyof Product, value: string | number | boolean) => {
     setNewProduct((prev) => ({ ...prev, [field]: value }));
@@ -530,265 +555,265 @@ export default function StoreManagerClient({
 
         {activeTab === "products" && (
           <div className="space-y-6">
-          <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">New Product</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            <input
-              className="border rounded px-3 py-2 text-sm"
-              placeholder="Name"
-              value={newProduct.name}
-              onChange={(event) => handleNewChange("name", event.target.value)}
-            />
-            <input
-              className="border rounded px-3 py-2 text-sm"
-              placeholder="Slug"
-              value={newProduct.slug}
-              onChange={(event) => handleNewChange("slug", event.target.value)}
-            />
-            <input
-              className="border rounded px-3 py-2 text-sm"
-              placeholder="Category"
-              value={newProduct.category || ""}
-              onChange={(event) => handleNewChange("category", event.target.value)}
-            />
-            <input
-              className="border rounded px-3 py-2 text-sm"
-              placeholder="Image URL"
-              value={newProduct.image_url || ""}
-              onChange={(event) => handleNewChange("image_url", event.target.value)}
-            />
-            <input
-              type="file"
-              accept="image/*"
-              className="border rounded px-3 py-2 text-sm"
-              onChange={(event) => handleNewImage(event.target.files?.[0] || null)}
-            />
-            <input
-              className="border rounded px-3 py-2 text-sm"
-              placeholder="Price"
-              type="number"
-              value={newProduct.price_inr}
-              onChange={(event) => handleNewChange("price_inr", Number(event.target.value))}
-            />
-            <div className="flex gap-2">
-              <input
-                className="border rounded px-3 py-2 text-sm w-full"
-                placeholder="Discount %"
-                type="number"
-                value={newDiscount}
-                onChange={(event) => setNewDiscount(Number(event.target.value))}
-              />
+            <section className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">New Product</h2>
+              <div className="grid md:grid-cols-3 gap-4">
+                <input
+                  className="border rounded px-3 py-2 text-sm"
+                  placeholder="Name"
+                  value={newProduct.name}
+                  onChange={(event) => handleNewChange("name", event.target.value)}
+                />
+                <input
+                  className="border rounded px-3 py-2 text-sm"
+                  placeholder="Slug"
+                  value={newProduct.slug}
+                  onChange={(event) => handleNewChange("slug", event.target.value)}
+                />
+                <input
+                  className="border rounded px-3 py-2 text-sm"
+                  placeholder="Category"
+                  value={newProduct.category || ""}
+                  onChange={(event) => handleNewChange("category", event.target.value)}
+                />
+                <input
+                  className="border rounded px-3 py-2 text-sm"
+                  placeholder="Image URL"
+                  value={newProduct.image_url || ""}
+                  onChange={(event) => handleNewChange("image_url", event.target.value)}
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="border rounded px-3 py-2 text-sm"
+                  onChange={(event) => handleNewImage(event.target.files?.[0] || null)}
+                />
+                <input
+                  className="border rounded px-3 py-2 text-sm"
+                  placeholder="Price"
+                  type="number"
+                  value={newProduct.price_inr}
+                  onChange={(event) => handleNewChange("price_inr", Number(event.target.value))}
+                />
+                <div className="flex gap-2">
+                  <input
+                    className="border rounded px-3 py-2 text-sm w-full"
+                    placeholder="Discount %"
+                    type="number"
+                    value={newDiscount}
+                    onChange={(event) => setNewDiscount(Number(event.target.value))}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyNewDiscount}
+                    className="px-3 py-2 rounded border text-sm"
+                  >
+                    Apply
+                  </button>
+                </div>
+                <input
+                  className="border rounded px-3 py-2 text-sm"
+                  placeholder="Stock"
+                  type="number"
+                  value={newProduct.stock}
+                  onChange={(event) => handleNewChange("stock", Number(event.target.value))}
+                />
+                <input
+                  className="border rounded px-3 py-2 text-sm md:col-span-2"
+                  placeholder="Description"
+                  value={newProduct.description || ""}
+                  onChange={(event) => handleNewChange("description", event.target.value)}
+                />
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={newProduct.requires_prescription}
+                    onChange={(event) =>
+                      handleNewChange("requires_prescription", event.target.checked)
+                    }
+                  />
+                  Requires prescription
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={newProduct.is_active}
+                    onChange={(event) => handleNewChange("is_active", event.target.checked)}
+                  />
+                  Active
+                </label>
+              </div>
               <button
                 type="button"
-                onClick={handleApplyNewDiscount}
-                className="px-3 py-2 rounded border text-sm"
+                onClick={handleCreate}
+                disabled={!canEdit || isPending}
+                className="mt-4 px-4 py-2 rounded bg-orange-500 text-white text-sm font-semibold disabled:opacity-60"
               >
-                Apply
+                Create Product
               </button>
-            </div>
-            <input
-              className="border rounded px-3 py-2 text-sm"
-              placeholder="Stock"
-              type="number"
-              value={newProduct.stock}
-              onChange={(event) => handleNewChange("stock", Number(event.target.value))}
-            />
-            <input
-              className="border rounded px-3 py-2 text-sm md:col-span-2"
-              placeholder="Description"
-              value={newProduct.description || ""}
-              onChange={(event) => handleNewChange("description", event.target.value)}
-            />
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={newProduct.requires_prescription}
-                onChange={(event) =>
-                  handleNewChange("requires_prescription", event.target.checked)
-                }
-              />
-              Requires prescription
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={newProduct.is_active}
-                onChange={(event) => handleNewChange("is_active", event.target.checked)}
-              />
-              Active
-            </label>
-          </div>
-          <button
-            type="button"
-            onClick={handleCreate}
-            disabled={!canEdit || isPending}
-            className="mt-4 px-4 py-2 rounded bg-orange-500 text-white text-sm font-semibold disabled:opacity-60"
-          >
-            Create Product
-          </button>
-        </section>
+            </section>
 
-        <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Products</h2>
-          <div className="flex flex-wrap gap-2 mb-4">
-            <button
-              type="button"
-              onClick={downloadCsv}
-              disabled={isCsvBusy}
-              className="px-3 py-2 rounded border text-sm"
-            >
-              {isCsvBusy ? "Exporting..." : "Export CSV"}
-            </button>
-            <label className="px-3 py-2 rounded border text-sm cursor-pointer">
-              Import CSV
-              <input
-                type="file"
-                accept=".csv"
-                className="hidden"
-                onChange={(event) => handleCsvImport(event.target.files?.[0] || null)}
-              />
-            </label>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-600">
-                <tr>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Slug</th>
-                  <th className="px-3 py-2">Price</th>
-                  <th className="px-3 py-2">Stock</th>
-                  <th className="px-3 py-2">Image</th>
-                  <th className="px-3 py-2">Active</th>
-                  <th className="px-3 py-2">Prescription</th>
-                  <th className="px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {items.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-3 py-2">
-                      <input
-                        className="border rounded px-2 py-1 text-sm w-full"
-                        value={product.name}
-                        onChange={(event) =>
-                          handleRowChange(product.id, "name", event.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        className="border rounded px-2 py-1 text-sm w-full"
-                        value={product.slug}
-                        onChange={(event) =>
-                          handleRowChange(product.id, "slug", event.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        className="border rounded px-2 py-1 text-sm w-24"
-                        value={product.price_inr}
-                        onChange={(event) =>
-                          handleRowChange(
-                            product.id,
-                            "price_inr",
-                            Number(event.target.value)
-                          )
-                        }
-                      />
-                      <div className="flex gap-2 mt-2">
-                        <input
-                          type="number"
-                          className="border rounded px-2 py-1 text-xs w-20"
-                          placeholder="%"
-                          value={rowDiscount[product.id] || ""}
-                          onChange={(event) =>
-                            setRowDiscount((prev) => ({
-                              ...prev,
-                              [product.id]: Number(event.target.value),
-                            }))
-                          }
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleApplyDiscount(product.id)}
-                          className="px-2 py-1 rounded border text-xs"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        className="border rounded px-2 py-1 text-sm w-20"
-                        value={product.stock}
-                        onChange={(event) =>
-                          handleRowChange(
-                            product.id,
-                            "stock",
-                            Number(event.target.value)
-                          )
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-col gap-2">
-                        {product.image_url && (
-                          <img
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-12 h-12 rounded object-cover"
+            <section className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Products</h2>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={downloadCsv}
+                  disabled={isCsvBusy}
+                  className="px-3 py-2 rounded border text-sm"
+                >
+                  {isCsvBusy ? "Exporting..." : "Export CSV"}
+                </button>
+                <label className="px-3 py-2 rounded border text-sm cursor-pointer">
+                  Import CSV
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(event) => handleCsvImport(event.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-left text-gray-600">
+                    <tr>
+                      <th className="px-3 py-2">Name</th>
+                      <th className="px-3 py-2">Slug</th>
+                      <th className="px-3 py-2">Price</th>
+                      <th className="px-3 py-2">Stock</th>
+                      <th className="px-3 py-2">Image</th>
+                      <th className="px-3 py-2">Active</th>
+                      <th className="px-3 py-2">Prescription</th>
+                      <th className="px-3 py-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {items.map((product) => (
+                      <tr key={product.id}>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded px-2 py-1 text-sm w-full"
+                            value={product.name}
+                            onChange={(event) =>
+                              handleRowChange(product.id, "name", event.target.value)
+                            }
                           />
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(event) =>
-                            handleRowImage(product.id, event.target.files?.[0] || null)
-                          }
-                        />
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={product.is_active}
-                        onChange={(event) =>
-                          handleRowChange(product.id, "is_active", event.target.checked)
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={product.requires_prescription}
-                        onChange={(event) =>
-                          handleRowChange(
-                            product.id,
-                            "requires_prescription",
-                            event.target.checked
-                          )
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        onClick={() => handleUpdate(product)}
-                        disabled={!canEdit || isPending}
-                        className="px-3 py-1 rounded bg-emerald-500 text-white text-xs font-semibold disabled:opacity-60"
-                      >
-                        Save
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            className="border rounded px-2 py-1 text-sm w-full"
+                            value={product.slug}
+                            onChange={(event) =>
+                              handleRowChange(product.id, "slug", event.target.value)
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            className="border rounded px-2 py-1 text-sm w-24"
+                            value={product.price_inr}
+                            onChange={(event) =>
+                              handleRowChange(
+                                product.id,
+                                "price_inr",
+                                Number(event.target.value)
+                              )
+                            }
+                          />
+                          <div className="flex gap-2 mt-2">
+                            <input
+                              type="number"
+                              className="border rounded px-2 py-1 text-xs w-20"
+                              placeholder="%"
+                              value={rowDiscount[product.id] || ""}
+                              onChange={(event) =>
+                                setRowDiscount((prev) => ({
+                                  ...prev,
+                                  [product.id]: Number(event.target.value),
+                                }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleApplyDiscount(product.id)}
+                              className="px-2 py-1 rounded border text-xs"
+                            >
+                              Apply
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            className="border rounded px-2 py-1 text-sm w-20"
+                            value={product.stock}
+                            onChange={(event) =>
+                              handleRowChange(
+                                product.id,
+                                "stock",
+                                Number(event.target.value)
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-col gap-2">
+                            {product.image_url && (
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
+                                className="w-12 h-12 rounded object-cover"
+                              />
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(event) =>
+                                handleRowImage(product.id, event.target.files?.[0] || null)
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={product.is_active}
+                            onChange={(event) =>
+                              handleRowChange(product.id, "is_active", event.target.checked)
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={product.requires_prescription}
+                            onChange={(event) =>
+                              handleRowChange(
+                                product.id,
+                                "requires_prescription",
+                                event.target.checked
+                              )
+                            }
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdate(product)}
+                            disabled={!canEdit || isPending}
+                            className="px-3 py-1 rounded bg-emerald-500 text-white text-xs font-semibold disabled:opacity-60"
+                          >
+                            Save
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
 
@@ -1000,7 +1025,12 @@ export default function StoreManagerClient({
                 </thead>
                 <tbody className="divide-y">
                   {items.map((product) => (
-                    <tr key={product.id}>
+                    <tr
+                      key={product.id}
+                      className={
+                        product.stock < lowStockThreshold ? "bg-red-50" : ""
+                      }
+                    >
                       <td className="px-3 py-2">
                         <input
                           type="checkbox"
@@ -1013,17 +1043,12 @@ export default function StoreManagerClient({
                           }
                         />
                       </td>
-                      <td className="px-3 py-2">
-                        <div className="font-medium text-gray-900">{product.name}</div>
-                        {product.stock <= lowStockThreshold && (
-                          <div className="text-xs text-red-600">Low stock</div>
-                        )}
-                      </td>
+                      <td className="px-3 py-2">{product.name}</td>
                       <td className="px-3 py-2">{product.stock}</td>
                       <td className="px-3 py-2">
                         <input
-                          className="border rounded px-2 py-1 text-sm w-32"
-                          placeholder="Scan barcode"
+                          className="border rounded px-2 py-1 text-sm w-full"
+                          placeholder="Scan barcode..."
                           value={scanInputs[product.id] || ""}
                           onChange={(event) =>
                             setScanInputs((prev) => ({
@@ -1033,7 +1058,6 @@ export default function StoreManagerClient({
                           }
                           onKeyDown={(event) => {
                             if (event.key === "Enter") {
-                              event.preventDefault();
                               handleInventoryScan(product);
                             }
                           }}
@@ -1043,7 +1067,7 @@ export default function StoreManagerClient({
                         <input
                           type="number"
                           className="border rounded px-2 py-1 text-sm w-24"
-                          value={inventoryDelta[product.id] ?? 0}
+                          value={inventoryDelta[product.id] || ""}
                           onChange={(event) =>
                             setInventoryDelta((prev) => ({
                               ...prev,
@@ -1054,8 +1078,9 @@ export default function StoreManagerClient({
                       </td>
                       <td className="px-3 py-2">
                         <input
-                          className="border rounded px-2 py-1 text-sm w-48"
-                          value={inventoryReason[product.id] ?? ""}
+                          className="border rounded px-2 py-1 text-sm w-full"
+                          placeholder="Reason"
+                          value={inventoryReason[product.id] || ""}
                           onChange={(event) =>
                             setInventoryReason((prev) => ({
                               ...prev,
@@ -1069,9 +1094,9 @@ export default function StoreManagerClient({
                           type="button"
                           onClick={() => handleInventoryAdjust(product.id)}
                           disabled={!canEdit || isPending}
-                          className="px-3 py-1 rounded bg-orange-500 text-white text-xs font-semibold disabled:opacity-60"
+                          className="px-3 py-1 rounded bg-emerald-500 text-white text-xs font-semibold disabled:opacity-60"
                         >
-                          Apply
+                          Adjust
                         </button>
                       </td>
                     </tr>
@@ -1090,58 +1115,49 @@ export default function StoreManagerClient({
                 <thead className="bg-gray-50 text-left text-gray-600">
                   <tr>
                     <th className="px-3 py-2">Order ID</th>
+                    <th className="px-3 py-2">Date</th>
                     <th className="px-3 py-2">Customer</th>
                     <th className="px-3 py-2">Total</th>
                     <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2">Payment</th>
                     <th className="px-3 py-2">Note</th>
-                    <th className="px-3 py-2">Items</th>
+                    <th className="px-3 py-2">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {orderItems.map((order) => (
                     <tr key={order.id}>
-                      <td className="px-3 py-2 text-xs text-gray-700">{order.id}</td>
-                      <td className="px-3 py-2 text-xs text-gray-600">
-                        {order.customer_id}
+                      <td className="px-3 py-2 font-mono text-xs">{order.id}</td>
+                      <td className="px-3 py-2">
+                        {new Date(order.created_at).toLocaleDateString()}
                       </td>
-                      <td className="px-3 py-2">INR {order.total_amount_inr}</td>
+                      <td className="px-3 py-2">
+                        {order.shipping_address_json.name}
+                      </td>
+                      <td className="px-3 py-2">
+                        ₹{order.total_amount_inr.toFixed(2)}
+                      </td>
                       <td className="px-3 py-2">
                         <select
-                          className="border rounded px-2 py-1 text-xs"
-                          value={orderStatusDraft[order.id] || order.order_status}
+                          value={orderStatusDraft[order.id]}
                           onChange={(event) =>
                             setOrderStatusDraft((prev) => ({
                               ...prev,
                               [order.id]: event.target.value as OrderStatus,
                             }))
                           }
+                          className="border rounded px-2 py-1 text-sm"
                         >
-                          {Object.values(OrderStatus).map((statusValue) => (
-                            <option key={statusValue} value={statusValue}>
-                              {statusValue}
+                          {Object.values(OrderStatus).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
                             </option>
                           ))}
                         </select>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleOrderStatus(
-                              order.id,
-                              orderStatusDraft[order.id] || order.order_status
-                            )
-                          }
-                          disabled={isPending}
-                          className="ml-2 px-2 py-1 rounded border text-xs"
-                        >
-                          Update
-                        </button>
                       </td>
-                      <td className="px-3 py-2">{order.payment_status}</td>
                       <td className="px-3 py-2">
                         <input
-                          className="border rounded px-2 py-1 text-xs w-40"
-                          placeholder="Status note"
+                          className="border rounded px-2 py-1 text-sm w-full"
+                          placeholder="Add a note..."
                           value={orderNote[order.id] || ""}
                           onChange={(event) =>
                             setOrderNote((prev) => ({
@@ -1152,21 +1168,20 @@ export default function StoreManagerClient({
                         />
                       </td>
                       <td className="px-3 py-2">
-                        {order.items.map((item) => (
-                          <div key={item.id} className="text-xs text-gray-600">
-                            {item.product.name} x {item.quantity}
-                          </div>
-                        ))}
-                        {order.status_logs && order.status_logs.length > 0 && (
-                          <div className="mt-2 text-[11px] text-gray-500 space-y-1">
-                            {order.status_logs.slice(0, 3).map((log) => (
-                              <div key={log.id}>
-                                {log.status} • {new Date(log.created_at).toLocaleString()}
-                                {log.note ? ` • ${log.note}` : ""}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleOrderStatus(order.id, orderStatusDraft[order.id])
+                          }
+                          disabled={
+                            !canEdit ||
+                            isPending ||
+                            orderStatusDraft[order.id] === order.order_status
+                          }
+                          className="px-3 py-1 rounded bg-emerald-500 text-white text-xs font-semibold disabled:opacity-60"
+                        >
+                          Update
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -1174,6 +1189,37 @@ export default function StoreManagerClient({
               </table>
             </div>
           </section>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4">
+            <Link
+              href={`/store-manager?page=${Math.max(1, currentPage - 1)}`}
+              className={`px-4 py-2 rounded text-sm font-semibold ${
+                currentPage === 1
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-white border"
+              }`}
+            >
+              Previous
+            </Link>
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Link
+              href={`/store-manager?page=${Math.min(
+                totalPages,
+                currentPage + 1
+              )}`}
+              className={`px-4 py-2 rounded text-sm font-semibold ${
+                currentPage === totalPages
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  : "bg-white border"
+              }`}
+            >
+              Next
+            </Link>
+          </div>
         )}
       </div>
     </div>
