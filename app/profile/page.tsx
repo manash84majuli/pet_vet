@@ -49,11 +49,13 @@ export default function ProfilePage() {
   const [status, setStatus] = useState<string | null>(null);
   
 
+  const [email, setEmail] = useState("");
+
   const [profileForm, setProfileForm] = useState({
     full_name: "",
-    email: "",
     phone: "",
-    address: "",
+    city: "",
+    state: "",
   });
 
   const [petForm, setPetForm] = useState({
@@ -63,7 +65,7 @@ export default function ProfilePage() {
     age_years: "",
     gender: Gender.MALE,
     weight_kg: "",
-    medical_history: "",
+    medical_notes: "",
     photo_url: "",
   });
 
@@ -79,18 +81,23 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [profileRes, petsRes] = await Promise.all([
+        const [profileRes, petsRes, { data: { user: authUser } }] = await Promise.all([
           getUserProfile(),
           getUserPets(),
+          supabase.auth.getUser(),
         ]);
+
+        if (authUser?.email) {
+          setEmail(authUser.email);
+        }
 
         if (profileRes.success && profileRes.data) {
           setProfile(profileRes.data);
           setProfileForm({
             full_name: profileRes.data.full_name,
-            email: "", // Not available in profile table
             phone: profileRes.data.phone,
-            address: profileRes.data.city || "",
+            city: profileRes.data.city || "",
+            state: profileRes.data.state || "",
           });
         }
 
@@ -104,7 +111,7 @@ export default function ProfilePage() {
       }
     }
     loadData();
-  }, []);
+  }, [supabase]);
 
   const handleProfileUpdate = async () => {
     if (!profile) return;
@@ -113,7 +120,8 @@ export default function ProfilePage() {
       const res = await updateProfile({
         full_name: profileForm.full_name,
         phone: profileForm.phone,
-        city: profileForm.address, // Mapping address to city for now
+        city: profileForm.city,
+        state: profileForm.state,
       });
 
       if (res.success && res.data) {
@@ -133,7 +141,7 @@ export default function ProfilePage() {
       age_years: "",
       gender: Gender.MALE,
       weight_kg: "",
-      medical_history: "",
+      medical_notes: "",
       photo_url: "",
     });
     setEditingPet(null);
@@ -148,7 +156,7 @@ export default function ProfilePage() {
       age_years: pet.age_years !== undefined ? pet.age_years.toString() : "",
       gender: pet.gender || Gender.MALE,
       weight_kg: pet.weight_kg !== undefined ? pet.weight_kg.toString() : "",
-      medical_history: pet.medical_notes || "",
+      medical_notes: pet.medical_notes || "",
       photo_url: pet.photo_url || "",
     });
     setShowAddPetModal(true);
@@ -167,7 +175,7 @@ export default function ProfilePage() {
         age_years: age,
         gender: petForm.gender,
         weight_kg: weight,
-        medical_notes: petForm.medical_history,
+        medical_notes: petForm.medical_notes,
         photo_url: petForm.photo_url || undefined,
       });
 
@@ -198,7 +206,7 @@ export default function ProfilePage() {
         age_years: age,
         gender: petForm.gender,
         weight_kg: weight,
-        medical_notes: petForm.medical_history,
+        medical_notes: petForm.medical_notes,
         photo_url: petForm.photo_url || undefined,
       });
 
@@ -476,7 +484,7 @@ export default function ProfilePage() {
                     </label>
                     <input
                       type="email"
-                      value={profileForm.email}
+                      value={email}
                       disabled
                       className="w-full rounded-xl border border-white/70 bg-slate-100 px-4 py-3 text-sm text-slate-500"
                     />
@@ -494,16 +502,31 @@ export default function ProfilePage() {
                       className="w-full rounded-xl border border-white/70 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </div>
-                  <div className="md:col-span-2">
+                  <div>
                     <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">
-                      Address
+                      City
                     </label>
-                    <textarea
-                      value={profileForm.address}
+                    <input
+                      type="text"
+                      value={profileForm.city}
                       onChange={(e) =>
-                        setProfileForm({ ...profileForm, address: e.target.value })
+                        setProfileForm({ ...profileForm, city: e.target.value })
                       }
-                      rows={3}
+                      placeholder="e.g., Mumbai"
+                      className="w-full rounded-xl border border-white/70 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">
+                      State
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.state}
+                      onChange={(e) =>
+                        setProfileForm({ ...profileForm, state: e.target.value })
+                      }
+                      placeholder="e.g., Maharashtra"
                       className="w-full rounded-xl border border-white/70 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                     />
                   </div>
@@ -822,9 +845,9 @@ export default function ProfilePage() {
                   Medical History
                 </label>
                 <textarea
-                  value={petForm.medical_history}
+                  value={petForm.medical_notes}
                   onChange={(e) =>
-                    setPetForm({ ...petForm, medical_history: e.target.value })
+                    setPetForm({ ...petForm, medical_notes: e.target.value })
                   }
                   placeholder="e.g., Vaccinated, No known allergies"
                   rows={2}
